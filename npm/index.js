@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 const fetch = require('node-fetch');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
 const unzipper = require('unzipper');
 
 const packageName = 'i18n-assistant'; 
-const version = '0.5.0';
+const version = '0.6.0'; 
 
 const platform = os.platform();
 const arch = os.arch();
@@ -30,9 +30,7 @@ if (platform === 'win32') {
   process.exit(1);
 }
 
-const downloadUrl = "https://github.com/RobinPaspuel/i18n-assistant/releases/download/0.5.0/i18n-assistant-aarch64-apple-darwin.zip";
-console.log(downloadUrl);
-// const downloadUrl = `https://github.com/RobinPaspuel/i18n-assistant/releases/download/${version}/i18n-assistant-${target}.${archiveExtension}`;
+const downloadUrl = `https://github.com/RobinPaspuel/i18n-assistant/releases/download/${version}/i18n-assistant-${target}.${archiveExtension}`;
 
 const downloadAndExtract = async () => {
   try {
@@ -60,19 +58,21 @@ const downloadAndExtract = async () => {
       fs.chmodSync(binaryPath, 0o755);
     }
 
-    if (platform === 'darwin' || platform === 'linux') {
-      fs.chmodSync(binaryPath, 0o755);
-    }
+    // Forward all arguments to the binary
+    const args = process.argv.slice(2);
 
-    exec(binaryPath, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing binary: ${error.message}`);
-        process.exit(1);
-      }
-      if (stderr) {
-        console.error(`stderr: ${stderr}`);
-      }
-      console.log(`stdout: ${stdout}`);
+    const child = spawn(binaryPath, args, {
+      stdio: 'inherit',
+      shell: platform === 'win32'
+    });
+
+    child.on('error', (error) => {
+      console.error(`Error executing binary: ${error.message}`);
+      process.exit(1);
+    });
+
+    child.on('exit', (code) => {
+      process.exit(code);
     });
   } catch (err) {
     console.error(err);
