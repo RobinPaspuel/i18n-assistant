@@ -4,7 +4,7 @@ name: Build and Upload Binaries
 
 on:
   release:
-    types: [published] 
+    types: [published] # Triggers the workflow when a release is published
 
 jobs:
   build-and-upload:
@@ -17,44 +17,87 @@ jobs:
           - aarch64-apple-darwin
 
     steps:
-      # Step 1: Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Compile and Release using rust-build.action
-      - name: Compile and Release
-        uses: rust-build/rust-build.action@v1.4.5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Set up Rust
+        uses: actions/setup-rust@v1
         with:
-          RUSTTARGET: ${{ matrix.target }}
-          EXTRA_FILES: "README.md LICENSE"
-          ARCHIVE_TYPES: "zip"
-          ARCHIVE_NAME: "i18n-assistant-${{ matrix.target }}" 
+          rust-version: stable
 
-      # Step 3: Generate Checksum (Optional but recommended)
+      - name: Cache Cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo git
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-git-
+
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Install required packages for aarch64-apple-darwin
+        if: matrix.target == 'aarch64-apple-darwin'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-unknown-linux-gnu
+
+      - name: Build project
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+        env:
+          CARGO_TERM_COLOR: always
+
+      - name: Prepare binaries
+        id: prepare_binaries
+        run: |
+          mkdir -p release-binaries
+          target_dir=target/${{ matrix.target }}/release
+          package_name=$(cargo metadata --format-version 1 | jq -r '.packages[0].name')
+
+          if [[ "${{ matrix.target }}" == "x86_64-pc-windows-gnu" ]]; then
+            binary_name="${package_name}.exe"
+          else
+            binary_name="${package_name}"
+          fi
+
+          cp $target_dir/${binary_name} release-binaries/
+          mv release-binaries/${binary_name} release-binaries/${package_name}-${{ matrix.target }}
+
+      - name: Archive binaries
+        run: |
+          cd release-binaries
+          zip -r ../${{ matrix.target }}.zip ./
+        shell: bash
+
       - name: Generate Checksum
         run: |
-          sha256sum "release-binaries/my_cli-${{ matrix.target }}.zip" > "release-binaries/my_cli-${{ matrix.target }}.zip.sha256"
+          sha256sum "${{ matrix.target }}.zip" > "${{ matrix.target }}.zip.sha256"
 
-      # Step 4: Upload Checksum to Release (Optional)
       - name: Upload Checksum to Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: release-binaries/my_cli-${{ matrix.target }}.zip.sha256
-          asset_name: my_cli-${{ matrix.target }}.zip.sha256
+          asset_path: ${{ matrix.target }}.zip.sha256
+          asset_name: i18n-assistant-${{ matrix.target }}.zip.sha256
           asset_content_type: text/plain
 
-      # Step 5: Upload Binary to Release
       - name: Upload Binary to Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: release-binaries/my_cli-${{ matrix.target }}.zip
-          asset_name: my_cli-${{ matrix.target }}.zip
+          asset_path: ${{ matrix.target }}.zip
+          asset_name: i18n-assistant-${{ matrix.target }}.zip
           asset_content_type: application/zip
