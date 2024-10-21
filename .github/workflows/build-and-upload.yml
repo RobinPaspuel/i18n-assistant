@@ -1,0 +1,49 @@
+# .github/workflows/build-and-upload.yml
+
+name: Build and Upload Binaries
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-and-upload:
+    name: Build and Upload for ${{ matrix.target }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - aarch64-apple-darwin
+
+    steps:
+      # Step 1: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Compile and Release using rust-build.action
+      - name: Compile and Release
+        uses: rust-build/rust-build.action@v1.4.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          RUSTTARGET: ${{ matrix.target }}
+          EXTRA_FILES: "README.md LICENSE"
+          ARCHIVE_TYPES: "zip" 
+          ARCHIVE_NAME: "my_cli-${{ matrix.target }}"
+
+      # Optional: Generate and upload checksum
+      - name: Generate Checksum
+        run: |
+          sha256sum "release-binaries/my_cli-${{ matrix.target }}.zip" > "release-binaries/my_cli-${{ matrix.target }}.zip.sha256"
+
+      - name: Upload Checksum to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: release-binaries/my_cli-${{ matrix.target }}.zip.sha256
+          asset_name: my_cli-${{ matrix.target }}.zip.sha256
+          asset_content_type: text/plain

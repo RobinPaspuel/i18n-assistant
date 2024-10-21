@@ -1,0 +1,49 @@
+# .github/workflows/create-release.yml
+
+name: Create Release
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository with full history
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 
+
+      # Step 2: Set up Git user for tagging
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # Step 3: Bump version and create a new tag
+      - name: Bump version and create tag
+        id: tag_version
+        uses: anothrNick/github-tag-action@v1.36.0
+        with:
+          tag_prefix: 'v'
+          default_bump: 'minor'  # Options: 'patch', 'minor', 'major'
+          release_branches: 'release'
+          tag_message: 'Release ${{ steps.tag_version.outputs.new_tag }}'
+
+      # Step 4: Create GitHub Release
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          release_name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: |
+            ### What's Changed
+            - Automated release based on push to the `release` branch.
+          draft: false
+          prerelease: false
