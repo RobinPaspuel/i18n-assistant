@@ -1,11 +1,8 @@
-# .github/workflows/build-and-upload.yml
-
 name: Build and Upload Binaries
 
 on:
   release:
-    types: [published] # Triggers the workflow when a release is published
-
+    types: [published] 
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
@@ -21,9 +18,11 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Set up Rust
-        uses: actions/setup-rust@v1
+        uses: actions-rs/toolchain@v1
         with:
-          rust-version: stable
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
 
       - name: Cache Cargo registry
         uses: actions/cache@v3
