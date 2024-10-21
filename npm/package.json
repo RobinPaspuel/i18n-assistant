@@ -1,0 +1,22 @@
+{
+  "name": "my-cli-npm",
+  "version": "1.0.0",
+  "description": "NPM wrapper for i18n-assistant tool",
+  "main": "index.js",
+  "bin": {
+    "i18na": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.1",
+    "unzipper": "^0.10.11"
+  },
+  "keywords": [
+    "CLI",
+    "Tool"
+  ],
+  "author": "Robin Paspuel",
+  "license": "ISC"
+}
