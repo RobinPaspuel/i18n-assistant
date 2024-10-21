@@ -39,7 +39,7 @@ jobs:
       - name: Publish Release
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GH_TOKEN }}
           script: |
             const tag = '${{ steps.tag_version.outputs.new_tag }}';
             const release = await github.rest.repos.getReleaseByTag({
