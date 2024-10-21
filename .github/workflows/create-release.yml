@@ -29,7 +29,7 @@ jobs:
         id: tag_version
         uses: anothrNick/github-tag-action@v1
         with:
-          tag_prefix: "v"
+          tag_prefix: "v0.0.1" 
           default_bump: "patch" # Options: 'patch', 'minor', 'major'
           release_branches: "release"
           tag_message: "Release ${{ steps.tag_version.outputs.new_tag }}"
