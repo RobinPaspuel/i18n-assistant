@@ -5,51 +5,41 @@ name: Create Release
 on:
   push:
     branches:
-      - release
+      - release 
 
 jobs:
   create_release:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository with full history to access all tags
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      # Step 2: Set up Git user for tagging
       - name: Set up Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      # Step 3: Bump version and create a new tag using 'github-tag-action'
       - name: Bump version and create tag
         id: tag_version
         uses: anothrNick/github-tag-action@v1
-        with:
-          tag_prefix: "v0.0.1" 
-          default_bump: "patch" # Options: 'patch', 'minor', 'major'
-          release_branches: "release"
-          tag_message: "Release ${{ steps.tag_version.outputs.new_tag }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          TAG_PREFIX: "v0.0.1"
+          DEFAULT_BUMP: "minor" # Options: 'patch', 'minor', 'major'
+          RELEASE_BRANCHES: "release"
 
-      # Step 4: Publish the release (if not already done by Release Drafter)
-      # Since Release Drafter maintains a draft release, we need to finalize it
-      - name: Publish Release
-        uses: actions/github-script@v6
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
-          github-token: ${{ secrets.GH_TOKEN }}
-          script: |
-            const tag = '${{ steps.tag_version.outputs.new_tag }}';
-            const release = await github.rest.repos.getReleaseByTag({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag: tag
-            });
-            await github.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.data.id,
-              draft: false
-            });
+          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          release_name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: |
+            ### What's Changed
+            - Automated release based on push to the `release` branch.
+          draft: false
+          prerelease: false
