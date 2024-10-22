@@ -2,6 +2,7 @@ use serde::{ Deserialize, Serialize };
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
+    pub src_path: String,
     pub i18n_path: String,
     pub dictionary_file: DictionaryFile,
     pub usage_pattern: UsagePattern,
