@@ -1,0 +1,14 @@
+{
+  "i18n_path": "src/i18n",
+  "dictionary_file": {
+    "file_extension": "js",
+    "variable_name": "dictionary"
+  },
+  "usage_pattern": {
+    "method_name": "get",
+    "arguments": [
+      "key",
+      "defaultValue"
+    ]
+  }
+}

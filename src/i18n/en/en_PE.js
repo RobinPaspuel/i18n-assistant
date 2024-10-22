@@ -1,0 +1,45 @@
+import en from './en'
+
+const dictionary = {
+  ...en,
+  "AlegraAccounting.new": "Accounting",
+  "autocompleteTestDescription": "Enter your client's RUC or DNI number to obtain their information from the SUNAT.",
+  "autocompleteTestTitle": "Try autocomplete ✨",
+  "electronicPayrollHabilitation": "Find out how to enable yourself to stamp invoices and electronic tickets.",
+  "emissionStatus": "SUNAT status",
+  "howToEmit": "How to stamp them",
+  "importProducts.text": "Import products",
+  "importProducts.tooltip": "We will take you to Alegra Accounting to upload new products.",
+  "notItemsYet": "To create your first sale we invite you to add a product or service. 🏷️",
+  "numerationElectronicOffline": "To create electronic invoices you need an internet connection to send them to SUNAT.",
+  "numerationsSettingTooltip": "Manage the numbering used for invoicing in your business from “Alegra Accounting”.",
+  "onboarding.video.id": "FUHXtrS52X0",
+  "onboarding.video.url": "https://www.youtube.com/embed/FUHXtrS52X0",
+  "printPersonalizedInvoices": "Voucher customization",
+  "printPersonalizedInvoicesHelp": "Give your touch to the final part of your bills or invoices with a phrase, image, or both.",
+  "solutionModal.accounting.buttonMainText": "Try 15 days free",
+  "solutionModal.accounting.buttonSecondaryText": "More information",
+  "solutionModal.accounting.description": "With Alegra Management, you control your income and expenses with a click. You also get administrative and sales reports in real time.",
+  "solutionModal.accounting.subTitle": "*After 15 days, you can choose a plan from {{price}} per month.",
+  "solutionModal.accounting.supTitle": "Clear accounts with",
+  "solutionModal.pos.buttonMainText": "Try 15 days free",
+  "solutionModal.pos.buttonSecondaryText": "More information",
+  "solutionModal.pos.description": "Invoice in seconds with the fastest Point of Sale System on the market. In addition, you can generate your sales and inventory reports in seconds.⚡",
+  "solutionModal.pos.subTitle": "*After 15 days, you can choose a plan from {{price}} per month.",
+  "solutionModal.pos.supTitle": "Manage your business with",
+  "solutionModal.store.buttonMainText": "Try 15 days free",
+  "solutionModal.store.buttonSecondaryText": "More information",
+  "solutionModal.store.description": "Start selling online in seconds! With Alegra Store, you can create your first online store in just 4 clicks.",
+  "solutionModal.store.subTitle": "*After 15 days, you can choose a plan from {{price}} per month.",
+  "solutionModal.store.supTitle": "Increase your sales with",
+  "taxesSettingTooltip": "Configure the taxes you need for invoicing at your point of sale “Alegra Accounting”.",
+  "userNotAllowed.edit.invoice": "You need the administrator to give you permission to edit invoices.",
+  "userNotAllowed.edit.saleTicket": "You need the administrator to give you permission to edit tickets.",
+  "youCanNowMakeElectronicInvoices": "Do you need to stamp electronic tickets?",
+  "youCanNowMakeElectronicInvoices.description": "Activate yourself at SUNAT and start stamping electronic tickets with all the requirements at your point of sale.",
+  "youHavePendingInvoicesToEmit": "You have sales documents to stamp! 🚨",
+  "youHavePendingInvoicesToEmit.description": "Learn how to identify the invoices or tickets you have “To stamp” and send them to the SUNAT with a click."
+  }
+
+
+export default dictionary;

@@ -6,9 +6,10 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 const unzipper = require('unzipper');
+const { fetchLatestVersion } = require('./utils');
 
-const packageName = 'i18n-assistant'; 
-const version = '0.6.0'; 
+const packageName = 'i18n-assistant';
+const version = '0.6.0';
 
 const platform = os.platform();
 const arch = os.arch();
@@ -30,7 +31,8 @@ if (platform === 'win32') {
   process.exit(1);
 }
 
-const downloadUrl = `https://github.com/RobinPaspuel/i18n-assistant/releases/download/${version}/i18n-assistant-${target}.${archiveExtension}`;
+const latestVersion = await fetchLatestVersion();
+const downloadUrl = `https://github.com/RobinPaspuel/i18n-assistant/releases/download/${latestVersion}/i18n-assistant-${target}.${archiveExtension}`;
 
 const downloadAndExtract = async () => {
   try {
