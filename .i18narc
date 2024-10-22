@@ -1,4 +1,5 @@
 {
+  "src_path": "src",
   "i18n_path": "src/i18n",
   "dictionary_file": {
     "file_extension": "js",

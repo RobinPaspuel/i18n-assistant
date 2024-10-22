@@ -2,13 +2,17 @@ use clap::{ Parser, Subcommand };
 use dialoguer::{ Input, Select };
 use glob::glob;
 use std::fs;
-use std::path::Path;
+use std::path::{ Path, PathBuf };
 use std::process;
+use indicatif::{ ProgressBar, ProgressStyle };
 
 mod config;
 mod sorter;
+mod analyzer;
+
 use config::{ Config, DictionaryFile, UsagePattern };
 use sorter::sort_js_object;
+use analyzer::{ analyze_file, collect_all_files };
 
 #[derive(Parser)]
 #[command(name = "i18na")]
@@ -40,6 +44,20 @@ enum Commands {
         #[arg(long)]
         verbose: bool,
     },
+    /// Analyze i18n usages in your project
+    Analyze {
+        /// Analyze a specific file by name or provide a full path
+        #[arg(long, conflicts_with_all = &["all"])]
+        file: Option<String>,
+
+        /// Analyze all translation files across all languages
+        #[arg(long, conflicts_with_all = &["file"])]
+        all: bool,
+
+        /// Enable verbose logging
+        #[arg(long)]
+        verbose: bool,
+    },
 }
 
 fn main() {
@@ -49,6 +67,7 @@ fn main() {
         Commands::Configure => configure(),
         Commands::Sort { file, language, all, verbose } =>
             sort_translations(file.clone(), language.clone(), *all, *verbose),
+        Commands::Analyze { file, all, verbose } => analyze_usages(file.clone(), *all, *verbose),
     }
 }
 
@@ -57,7 +76,22 @@ fn main() {
 fn configure() {
     println!("Welcome to i18na Configuration!");
 
-    // 1. Get i18n path
+    // 1. Get src path
+    let src_path: String = Input::new()
+        .with_prompt("Enter the path to your source directory (e.g., src)")
+        .validate_with(
+            |input: &String| -> Result<(), &str> {
+                if Path::new(input).exists() {
+                    Ok(())
+                } else {
+                    Err("Path does not exist. Please enter a valid path.")
+                }
+            }
+        )
+        .interact_text()
+        .unwrap();
+
+    // 2. Get i18n path
     let i18n_path: String = Input::new()
         .with_prompt("Enter the path to your i18n directory (e.g., src/i18n)")
         .validate_with(
@@ -72,7 +106,7 @@ fn configure() {
         .interact_text()
         .unwrap();
 
-    // 2. Get dictionary file configuration
+    // 3. Get dictionary file configuration
     let mut file_extension: String = Input::new()
         .with_prompt("Enter the file extension for your dictionary files (e.g., js)")
         .default("js".to_string())
@@ -90,7 +124,7 @@ fn configure() {
         .interact_text()
         .unwrap();
 
-    // 3. Get usage pattern
+    // 4. Get usage pattern
     let method_name: String = Input::new()
         .with_prompt("Enter the method name used to access translations (e.g., get)")
         .default("get".to_string())
@@ -112,6 +146,7 @@ fn configure() {
 
     // Create Config
     let config = Config {
+        src_path,
         i18n_path,
         dictionary_file: DictionaryFile {
             file_extension,
@@ -155,6 +190,165 @@ fn sort_translations(file: Option<String>, language: Option<String>, all: bool, 
     if !verbose {
         println!("Sorting completed successfully.");
     }
+}
+
+/// Handles the `analyze` subcommand.
+fn analyze_usages(file: Option<String>, all: bool, verbose: bool) {
+    let config = load_config();
+
+    // Determine which files to analyze based on parameters
+    let files_to_analyze = if let Some(file_arg) = file {
+        vec![construct_file_path(&file_arg, &config)]
+    } else if all {
+        // Analyze all translation files across all languages
+        collect_all_files(&config)
+    } else {
+        // Interactive mode
+        analyze_interactive(&config)
+    };
+
+    let total_files = files_to_analyze.len();
+    let mut total_issues = 0;
+
+    // Initialize progress bar
+    let pb = ProgressBar::new(total_files as u64);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .progress_chars("#>-")
+            .template(
+                "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})"
+            )
+            .expect("Failed to set progress bar template")
+    );
+
+    for file_path in files_to_analyze {
+        if verbose {
+            println!("Analyzing file: {}", file_path);
+        }
+
+        match analyze_file(&file_path) {
+            Ok(issues) => {
+                if !issues.is_empty() {
+                    total_issues += issues.len();
+                    for issue in issues {
+                        println!(
+                            "Error: {}\nFile: {}\nLine: {}\nSuggestion: {}\n",
+                            issue.description,
+                            issue.file,
+                            issue.line,
+                            issue.suggestion
+                        );
+                    }
+                }
+            }
+            Err(e) => {
+                println!("Failed to analyze file '{}': {}", file_path, e);
+            }
+        }
+
+        pb.inc(1);
+    }
+
+    pb.finish_with_message("Analysis complete.");
+
+    println!("\nAnalysis Summary:");
+    println!("Total Files Analyzed: {}", total_files);
+    println!("Total Issues Found: {}", total_issues);
+
+    if total_issues == 0 {
+        println!("No issues found in i18n usages.");
+    } else {
+        std::process::exit(1); // Exit with error code if issues are found
+    }
+}
+
+/// Implements interactive analysis for the `analyze` subcommand.
+/// Allows users to navigate directories and select files for analysis.
+fn analyze_interactive(config: &Config) -> Vec<String> {
+    let mut selected_files = Vec::new();
+    let mut current_path = Path::new(&config.src_path).to_path_buf();
+
+    loop {
+        // List directories and .js files in the current directory
+        let (directories, js_files) = list_dir_contents(&current_path);
+
+        // Prepare items for selection
+        let mut items = Vec::new();
+        for dir in &directories {
+            items.push(format!("{}/", Path::new(dir).display()));
+        }
+        for file in &js_files {
+            items.push(file.clone());
+        }
+
+        // Add navigation options
+        if current_path != Path::new(&config.src_path) {
+            items.push(".. (Go Up)".to_string());
+        }
+        items.push("Finish Selection".to_string());
+
+        // Prompt user to select one item
+        let selection = Select::new()
+            .with_prompt(format!("Current Directory: {}", current_path.display()))
+            .default(0)
+            .items(&items)
+            .interact()
+            .unwrap();
+
+        let selected_item = &items[selection];
+        if selected_item == ".. (Go Up)" {
+            current_path = current_path.parent().unwrap().to_path_buf();
+            continue;
+        } else if selected_item == "Finish Selection" {
+            break;
+        }
+
+        let selected_path = current_path.join(selected_item.trim_end_matches('/'));
+
+        if selected_item.ends_with('/') {
+            // It's a directory; navigate into it
+            current_path = selected_path;
+        } else {
+            // It's a file; add to the list
+            selected_files.push(selected_path.to_str().unwrap().to_string());
+        }
+    }
+
+    selected_files
+}
+
+/// Lists directories and `.js` files in the given path.
+///
+/// Returns a tuple containing a vector of directories and a vector of `.js` files.
+fn list_dir_contents(path: &PathBuf) -> (Vec<String>, Vec<String>) {
+    let mut directories = Vec::new();
+    let mut js_files = Vec::new();
+
+    match fs::read_dir(path) {
+        Ok(entries) => {
+            for entry in entries.filter_map(Result::ok) {
+                let entry_path = entry.path();
+                if entry_path.is_dir() {
+                    if let Some(dir_name) = entry_path.file_name() {
+                        directories.push(dir_name.to_string_lossy().into_owned());
+                    }
+                } else if entry_path.is_file() {
+                    if let Some(ext) = entry_path.extension() {
+                        if ext == "js" {
+                            if let Some(file_name) = entry_path.file_name() {
+                                js_files.push(file_name.to_string_lossy().into_owned());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Error reading directory '{}': {}", path.display(), e);
+        }
+    }
+
+    (directories, js_files)
 }
 
 /// Constructs the full file path based on the input.
