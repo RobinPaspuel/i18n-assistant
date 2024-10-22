@@ -9,10 +9,8 @@ const unzipper = require('unzipper');
 const { fetchLatestVersion } = require('./utils');
 
 const packageName = 'i18n-assistant';
-const version = '0.6.0';
 
 const platform = os.platform();
-const arch = os.arch();
 
 let target;
 let archiveExtension = 'zip';
