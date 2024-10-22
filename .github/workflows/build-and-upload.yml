@@ -2,7 +2,7 @@ name: Build and Upload Binaries
 
 on:
   release:
-    types: [published] 
+    types: [published]
 
 jobs:
   build-darwin:
@@ -49,8 +49,10 @@ jobs:
         run: |
           mkdir -p release-binaries
           target_dir=target/aarch64-apple-darwin/release
-          cp $target_dir/i18n-assistant release-binaries/
-          mv release-binaries/i18n-assistant release-binaries/i18n-assistant
+          cp $target_dir/i18n_assistant release-binaries/
+          # Optionally, rename the binary if you prefer hyphens in the release asset
+          mv release-binaries/i18n_assistant release-binaries/i18n-assistant
+        shell: bash
 
       - name: Archive binaries
         run: |
