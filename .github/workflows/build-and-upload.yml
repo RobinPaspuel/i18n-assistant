@@ -1,10 +1,8 @@
-# .github/workflows/build-and-upload.yml
-
 name: Build and Upload Binaries
 
 on:
   release:
-    types: [published] # Triggers the workflow when a release is published
+    types: [published] 
 
 jobs:
   build-darwin:
@@ -44,13 +42,15 @@ jobs:
         env:
           CARGO_TERM_COLOR: always
 
+      - name: List release directory
+        run: ls -la target/aarch64-apple-darwin/release/
+
       - name: Prepare binaries
         run: |
           mkdir -p release-binaries
           target_dir=target/aarch64-apple-darwin/release
-          package_name=$(cargo metadata --format-version 1 | jq -r '.packages[0].name')
-          cp $target_dir/${package_name} release-binaries/
-          mv release-binaries/${package_name} release-binaries/i18n-assistant
+          cp $target_dir/i18n-assistant release-binaries/
+          mv release-binaries/i18n-assistant release-binaries/i18n-assistant
 
       - name: Archive binaries
         run: |
